@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import YandexMapPath from './YandexMapPath';
 import SearchableLocationInput from './SearchableLocationInput';
+import RouteInfo from './RouteInfo';
+import RoutePrediction from './RoutePrediction';
 import './MapExample.css';
 
 const MapExample = () => {
@@ -15,6 +17,9 @@ const MapExample = () => {
     lng: 30.3609,
     name: 'St. Petersburg, Russia'
   });
+
+  const [waypoints, setWaypoints] = useState([]);
+  const [routeInfo, setRouteInfo] = useState(null);
 
   const predefinedLocations = [
     { lat: 55.7558, lng: 37.6176, name: 'Moscow, Russia' },
@@ -31,15 +36,55 @@ const MapExample = () => {
     console.log('Map is ready:', map);
   };
 
-  const handleRouteReady = (route) => {
+  const handleRouteReady = (route, waypoints, routeInfo) => {
     console.log('Route is ready:', route);
+    console.log('Waypoints received:', waypoints?.length || 0);
+    console.log('Route info received:', !!routeInfo);
+    console.log('Current start location:', startLocation?.name);
+    console.log('Current end location:', endLocation?.name);
+    
+    // Update waypoints with current location names
+    const updatedWaypoints = waypoints?.map((waypoint, index) => {
+      if (waypoint.type === 'start') {
+        return { ...waypoint, name: startLocation?.name || waypoint.name };
+      } else if (waypoint.type === 'end') {
+        return { ...waypoint, name: endLocation?.name || waypoint.name };
+      }
+      return waypoint;
+    }) || [];
+    
+    setWaypoints(updatedWaypoints);
+    setRouteInfo(routeInfo || null);
+  };
+
+  const handleRefreshRoute = () => {
+    console.log('Manual route refresh triggered');
+    setWaypoints([]);
+    setRouteInfo(null);
+    // Force route recalculation by slightly modifying the start location
+    const newStart = { ...startLocation };
+    setStartLocation({ ...newStart });
   };
 
   return (
     <div className="map-example">
       <div className="map-example-header">
         <h1>Yandex Maps Path Component</h1>
-        <p>Select two locations to see the path between them</p>
+        <p>Select two locations to see the path between them and 8-hour predictions</p>
+        <button 
+          onClick={handleRefreshRoute}
+          style={{
+            padding: '10px 20px',
+            background: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginTop: '10px'
+          }}
+        >
+          🔄 Refresh Route & Predictions
+        </button>
       </div>
 
       <div className="map-example-controls">
@@ -106,11 +151,9 @@ const MapExample = () => {
         />
       </div>
 
-      <div className="map-info">
-        <h3>Current Route</h3>
-        <p><strong>From:</strong> {startLocation.name} ({startLocation.lat}, {startLocation.lng})</p>
-        <p><strong>To:</strong> {endLocation.name} ({endLocation.lat}, {endLocation.lng})</p>
-      </div>
+      <RouteInfo waypoints={waypoints} routeInfo={routeInfo} />
+      
+      <RoutePrediction waypoints={waypoints} routeInfo={routeInfo} />
     </div>
   );
 };
