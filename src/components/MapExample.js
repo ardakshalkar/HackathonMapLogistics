@@ -131,8 +131,8 @@ const MapExample = () => {
   return (
     <div className="map-example">
       <div className="map-example-header">
-        <h1>Yandex Maps Path Component</h1>
-        <p>Select two locations to see the path between them and 8-hour predictions</p>
+        <h1>Компонент маршрутов Яндекс Карт</h1>
+        <p>Выберите две точки для просмотра маршрута между ними и прогнозов на 8 часов</p>
         <button 
           onClick={handleRefreshRoute}
           style={{
@@ -145,7 +145,7 @@ const MapExample = () => {
             marginTop: '10px'
           }}
         >
-          🔄 Refresh Route & Predictions
+          🔄 Обновить маршрут и прогнозы
         </button>
       </div>
 
@@ -153,14 +153,14 @@ const MapExample = () => {
         <div className="location-controls">
           <div className="location-group">
             <SearchableLocationInput
-              label="Start Location"
+              label="Начальное местоположение"
               value={startLocation}
               onChange={handleStartLocationChange}
-              placeholder="Search for start city..."
+              placeholder="Поиск начального города..."
             />
             
             <div className="quick-select">
-              <label>Quick select:</label>
+              <label>Быстрый выбор:</label>
               <div className="quick-buttons">
                 {predefinedLocations.slice(0, 4).map((location, index) => (
                   <button
@@ -177,14 +177,14 @@ const MapExample = () => {
 
           <div className="location-group">
             <SearchableLocationInput
-              label="End Location"
+              label="Конечное местоположение"
               value={endLocation}
               onChange={handleEndLocationChange}
-              placeholder="Search for destination city..."
+              placeholder="Поиск города назначения..."
             />
             
             <div className="quick-select">
-              <label>Quick select:</label>
+              <label>Быстрый выбор:</label>
               <div className="quick-buttons">
                 {predefinedLocations.slice(4, 8).map((location, index) => (
                   <button

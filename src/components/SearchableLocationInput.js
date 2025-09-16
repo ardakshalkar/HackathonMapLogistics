@@ -6,7 +6,7 @@ const SearchableLocationInput = ({
   label, 
   value, 
   onChange, 
-  placeholder = "Search for a city...",
+  placeholder = "Поиск города...",
   useYandexGeocoding = true 
 }) => {
   const [query, setQuery] = useState('');
@@ -194,7 +194,7 @@ const SearchableLocationInput = ({
                   </div>
                 )}
                 <div className="suggestion-source">
-                  {suggestion.source === 'local' ? '📍 Database' : '🌐 Yandex'}
+                  {suggestion.source === 'local' ? '📍 База данных' : '🌐 Яндекс'}
                 </div>
               </div>
             ))}
@@ -204,7 +204,7 @@ const SearchableLocationInput = ({
         {isOpen && !isLoading && suggestions.length === 0 && query.length >= 2 && (
           <div className="suggestions-dropdown">
             <div className="no-results">
-              No cities found for "{query}"
+              Не найдено городов по запросу "{query}"
             </div>
           </div>
         )}

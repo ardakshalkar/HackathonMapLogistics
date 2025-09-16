@@ -55,7 +55,7 @@ const YandexMapPath = ({
       console.log('Container dimensions:', rect.width, 'x', rect.height);
       
       if (rect.width === 0 || rect.height === 0) {
-        setError(`Map container has no dimensions: ${rect.width}x${rect.height}. Check CSS styling.`);
+        setError(`Контейнер карты не имеет размеров: ${rect.width}x${rect.height}. Проверьте CSS стили.`);
         setIsLoading(false);
         return;
       }
@@ -92,7 +92,7 @@ const YandexMapPath = ({
       });
     } catch (err) {
       console.error('Error initializing map:', err);
-      setError('Error initializing map: ' + err.message);
+      setError('Ошибка инициализации карты: ' + err.message);
       setIsLoading(false);
     }
   };
@@ -184,8 +184,8 @@ const YandexMapPath = ({
     const startMarker = new window.ymaps.Placemark(
       [startLocation.lat, startLocation.lng],
       {
-        balloonContent: `Start: ${startLocation.name || 'Start Location'}`,
-        iconCaption: 'Start'
+        balloonContent: `Начало: ${startLocation.name || 'Начальное местоположение'}`,
+        iconCaption: 'Начало'
       },
       {
         preset: 'islands#greenDotIcon',
@@ -196,8 +196,8 @@ const YandexMapPath = ({
     const endMarker = new window.ymaps.Placemark(
       [endLocation.lat, endLocation.lng],
       {
-        balloonContent: `End: ${endLocation.name || 'End Location'}`,
-        iconCaption: 'End'
+        balloonContent: `Конец: ${endLocation.name || 'Конечное местоположение'}`,
+        iconCaption: 'Конец'
       },
       {
         preset: 'islands#redDotIcon',
@@ -267,7 +267,7 @@ const YandexMapPath = ({
     // Handle route errors
     multiRoute.model.events.add('requesterror', (event) => {
       console.error('Route request failed:', event.get('error'));
-      setError('Error creating route: ' + event.get('error').message);
+      setError('Ошибка создания маршрута: ' + event.get('error').message);
     });
 
     // Add debug event listeners
@@ -487,11 +487,11 @@ const YandexMapPath = ({
         {isLoading && (
           <div className="map-loading-overlay">
             <div className="loading-spinner">
-              Loading map...
+              Загрузка карты...
               <br />
-              <small>Yandex Maps API: {window.ymaps ? 'Loaded' : 'Loading...'}</small>
+              <small>API Яндекс Карт: {window.ymaps ? 'Загружено' : 'Загрузка...'}</small>
               <br />
-              <small>Container: {mapRef.current ? 'Ready' : 'Waiting...'}</small>
+              <small>Контейнер: {mapRef.current ? 'Готов' : 'Ожидание...'}</small>
             </div>
           </div>
         )}
@@ -499,15 +499,15 @@ const YandexMapPath = ({
         {error && (
           <div className="map-error-overlay">
             <div className="error-message">
-              <h3>Map Error</h3>
+              <h3>Ошибка карты</h3>
               <p>{error}</p>
               {error.includes('API key') && (
                 <div className="api-key-help">
-                  <p><strong>To fix this:</strong></p>
+                  <p><strong>Для исправления:</strong></p>
                   <ol>
-                    <li>Get a valid API key from <a href="https://developer.tech.yandex.ru/" target="_blank" rel="noopener noreferrer">Yandex Developer Console</a></li>
-                    <li>Replace <code>YOUR_API_KEY</code> in <code>public/index.html</code></li>
-                    <li>Restart the application</li>
+                    <li>Получите действительный API ключ в <a href="https://developer.tech.yandex.ru/" target="_blank" rel="noopener noreferrer">Консоли разработчика Яндекса</a></li>
+                    <li>Замените <code>YOUR_API_KEY</code> в <code>public/index.html</code></li>
+                    <li>Перезапустите приложение</li>
                   </ol>
                 </div>
               )}

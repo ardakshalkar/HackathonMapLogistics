@@ -26,7 +26,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
       console.log('News API response received');
       
     } catch (err) {
-      setError('Failed to get delay predictions. Please try again.');
+      setError('Не удалось получить прогноз задержек. Попробуйте еще раз.');
       console.error('Delay prediction error:', err);
     } finally {
       setLoading(false);
@@ -61,7 +61,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: `Analyze weather conditions and potential delays for transportation route. Route distance: ${routeInfo?.totalDistanceText || 'unknown'}, duration: ${routeInfo?.totalDurationText || 'unknown'}`,
+        text: `Проанализируйте погодные условия и потенциальные задержки для транспортного маршрута. Расстояние маршрута: ${routeInfo?.totalDistanceText || 'неизвестно'}, продолжительность: ${routeInfo?.totalDurationText || 'неизвестно'}`,
         language: 'russian',
         data: {
           route: route,
@@ -89,7 +89,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: 'Summarize recent news and events that might affect transportation and logistics in these locations',
+        text: 'Обобщите последние новости и события, которые могут повлиять на транспорт и логистику в этих местах',
         language: 'russian',
         data: {
           coords: coords
@@ -133,11 +133,11 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
     <div className="delay-modal-overlay" onClick={onClose}>
       <div className="delay-modal-content" onClick={e => e.stopPropagation()}>
         <div className="delay-modal-header">
-          <h3>🚛 Delay Prediction</h3>
+          <h3>🚛 Прогноз задержек</h3>
           <button 
             className="delay-modal-close" 
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label="Закрыть модальное окно"
           >
             ×
           </button>
@@ -146,13 +146,13 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
         <div className="delay-modal-body">
           {!weatherData && !newsData && !loading && !error && (
             <div className="delay-initial-state">
-              <p>Click the button below to analyze potential delays for your route.</p>
+              <p>Нажмите кнопку ниже, чтобы проанализировать потенциальные задержки для вашего маршрута.</p>
               <div className="route-summary">
-                <strong>Route Summary:</strong>
+                <strong>Сводка маршрута:</strong>
                 <ul>
-                  <li>Distance: {routeInfo?.totalDistanceText || 'Unknown'}</li>
-                  <li>Duration: {routeInfo?.totalDurationText || 'Unknown'}</li>
-                  <li>Waypoints: {waypoints?.length || 0}</li>
+                  <li>Расстояние: {routeInfo?.totalDistanceText || 'Неизвестно'}</li>
+                  <li>Продолжительность: {routeInfo?.totalDurationText || 'Неизвестно'}</li>
+                  <li>Путевые точки: {waypoints?.length || 0}</li>
                 </ul>
               </div>
             </div>
@@ -161,8 +161,8 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
           {loading && (
             <div className="delay-loading">
               <div className="delay-spinner"></div>
-              <p>Analyzing route conditions...</p>
-              <small>Getting weather conditions and news updates for your route</small>
+              <p>Анализ условий маршрута...</p>
+              <small>Получение информации о погодных условиях и новостях для вашего маршрута</small>
             </div>
           )}
 
@@ -177,7 +177,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
             <div className="delay-results">
               {weatherData && (
                 <div className="analysis-section">
-                  <h4>🌤️ Weather & Conditions Analysis</h4>
+                  <h4>🌤️ Анализ погоды и условий</h4>
                   <div className="delay-response weather-response">
                     <div 
                       className="formatted-text"
@@ -189,7 +189,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
 
               {newsData && (
                 <div className="analysis-section">
-                  <h4>📰 News & Events Summary</h4>
+                  <h4>📰 Сводка новостей и событий</h4>
                   <div className="delay-response news-response">
                     <div 
                       className="formatted-text"
@@ -209,7 +209,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
               onClick={handlePredictDelay}
               disabled={loading}
             >
-              {loading ? 'Analyzing...' : '🔮 Predict Delays'}
+              {loading ? 'Анализ...' : '🔮 Прогноз задержек'}
             </button>
           )}
           
@@ -219,7 +219,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
               onClick={handlePredictDelay}
               disabled={loading}
             >
-              🔄 Refresh Analysis
+              🔄 Обновить анализ
             </button>
           )}
           
@@ -227,7 +227,7 @@ const DelayPredictionModal = ({ isOpen, onClose, waypoints, routeInfo }) => {
             className="delay-close-button"
             onClick={onClose}
           >
-            Close
+            Закрыть
           </button>
         </div>
       </div>
