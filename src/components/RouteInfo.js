@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import DelayPredictionModal from './DelayPredictionModal';
 import './RouteInfo.css';
 
 const RouteInfo = ({ waypoints = [], routeInfo = null }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedWaypoint, setSelectedWaypoint] = useState(null);
+  const [showDelayModal, setShowDelayModal] = useState(false);
 
   if (!routeInfo && waypoints.length === 0) {
     return null;
@@ -60,6 +62,17 @@ const RouteInfo = ({ waypoints = [], routeInfo = null }) => {
             </>
           )}
         </div>
+        
+        {routeInfo && (
+          <div className="route-actions">
+            <button 
+              className="predict-delay-button"
+              onClick={() => setShowDelayModal(true)}
+            >
+              🔮 Predict Delay
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="waypoints-section">
@@ -187,6 +200,13 @@ const RouteInfo = ({ waypoints = [], routeInfo = null }) => {
           </div>
         </div>
       )}
+
+      <DelayPredictionModal 
+        isOpen={showDelayModal}
+        onClose={() => setShowDelayModal(false)}
+        waypoints={waypoints}
+        routeInfo={routeInfo}
+      />
     </div>
   );
 };
