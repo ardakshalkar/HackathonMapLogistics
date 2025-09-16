@@ -125,6 +125,7 @@ const SearchableLocationInput = ({
       source: suggestion.source
     };
     
+    console.log('SearchableLocationInput: Suggestion clicked:', location);
     setQuery(location.name);
     setIsOpen(false);
     onChange(location);

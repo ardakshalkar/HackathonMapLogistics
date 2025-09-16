@@ -119,35 +119,59 @@ const YandexMapPath = ({
 
 
   const createRoute = () => {
-    console.log('createRoute called with:', { 
-      map: !!map, 
-      startLocation: startLocation?.name, 
-      endLocation: endLocation?.name 
-    });
+    console.log('=== CREATE ROUTE CALLED ===');
+    console.log('Map exists:', !!map);
+    console.log('Start location:', startLocation);
+    console.log('End location:', endLocation);
+    console.log('Previous route exists:', !!route);
     
     if (!map || !startLocation || !endLocation) {
       console.log('Route creation skipped - missing requirements');
       return;
     }
 
-    // Clear ALL existing objects from map
+    // Clear ALL existing objects from map and reset route state
+    console.log('Clearing all map objects...');
     map.geoObjects.removeAll();
+    
+    if (route) {
+      console.log('Destroying previous route...');
+      try {
+        route.model.destroy();
+      } catch (e) {
+        console.log('Error destroying route:', e);
+      }
+      setRoute(null);
+    }
 
-    // Create multi-route
+    // Clear any Yandex Maps cache if possible
+    if (window.ymaps && window.ymaps.ready) {
+      console.log('Attempting to clear Yandex Maps cache...');
+    }
+
+    // Create multi-route with unique key to ensure fresh route
+    const routeKey = `${startLocation.lat}_${startLocation.lng}_${endLocation.lat}_${endLocation.lng}`;
+    console.log('Creating new route with key:', routeKey);
+    
     const multiRoute = new window.ymaps.multiRouter.MultiRoute({
       referencePoints: [
         [startLocation.lat, startLocation.lng],
         [endLocation.lat, endLocation.lng]
       ],
       params: {
-        routingMode: 'auto' // 'auto', 'walking', 'driving', 'transit'
+        routingMode: 'auto', // 'auto', 'walking', 'driving', 'transit'
+        routeKey: routeKey, // Add unique identifier
+        avoidTolls: false,
+        strictBounds: true // Force route within bounds
       }
     }, {
       boundsAutoApply: true,
       routeActiveStrokeWidth: 6,
       routeActiveStrokeColor: '#003dff',
       routeStrokeWidth: 4,
-      routeStrokeColor: '#666666'
+      routeStrokeColor: '#666666',
+      wayPointFinishIconImageHref: 'islands#blueStretchyIcon',
+      wayPointStartIconImageHref: 'islands#redStretchyIcon'
     });
 
     // Add route to map
@@ -213,11 +237,23 @@ const YandexMapPath = ({
         const properties = route.properties.getAll();
         console.log('Route properties:', properties);
         
-        // Extract waypoints from the multiRoute object
-        extractWaypoints(multiRoute);
+        // Extract both waypoints and route info, then call onRouteReady once
+        console.log('Starting coordinated extraction...');
         
-        // Extract route information
-        extractRouteInfo(multiRoute);
+        // First extract waypoints
+        const extractedWaypoints = extractWaypointsOnly(multiRoute);
+        
+        // Then extract route info
+        const extractedRouteInfo = extractRouteInfoOnly(multiRoute);
+        
+        // Now call onRouteReady with both pieces of data
+        console.log('=== CALLING onRouteReady WITH COMPLETE DATA ===');
+        console.log('Final waypoints:', extractedWaypoints);
+        console.log('Final route info:', extractedRouteInfo);
+        
+        if (onRouteReady && typeof onRouteReady === 'function') {
+          onRouteReady(multiRoute, extractedWaypoints, extractedRouteInfo);
+        }
         
         if (properties.boundedBy) {
           map.setBounds(properties.boundedBy, {
@@ -244,14 +280,17 @@ const YandexMapPath = ({
     });
   };
 
-  // Extract waypoints using the correct Yandex Maps API
-  const extractWaypoints = (multiRouteObj) => {
+  // Extract waypoints using the correct Yandex Maps API (returns data, doesn't call callbacks)
+  const extractWaypointsOnly = (multiRouteObj) => {
     try {
-      console.log('Extracting waypoints from multiRoute:', multiRouteObj);
+      console.log('=== EXTRACTING WAYPOINTS ===');
+      console.log('MultiRoute object:', multiRouteObj);
+      console.log('Current start location in scope:', startLocation);
+      console.log('Current end location in scope:', endLocation);
       
       // Method 1: Get reference points (start and end)
       const wayPoints = multiRouteObj.getWayPoints();
-      console.log('WayPoints collection:', wayPoints);
+      console.log('WayPoints collection from Yandex:', wayPoints);
       
       const extractedWaypoints = [];
       
@@ -259,65 +298,90 @@ const YandexMapPath = ({
         const coordinates = point.geometry.getCoordinates();
         const address = point.properties.get('name') || `Point ${index + 1}`;
         
-        extractedWaypoints.push({
+        console.log(`=== PROCESSING WAYPOINT ${index} ===`);
+        console.log('Raw coordinates from Yandex:', coordinates);
+        console.log('Raw address from Yandex:', address);
+        console.log('Available startLocation:', startLocation);
+        console.log('Available endLocation:', endLocation);
+        
+        // Use the original location names instead of Yandex Maps addresses
+        let locationName = address;
+        if (index === 0 && startLocation && startLocation.name) {
+          locationName = startLocation.name;
+          console.log('Using original start location name:', locationName);
+        } else if (index === 1 && endLocation && endLocation.name) {
+          locationName = endLocation.name;
+          console.log('Using original end location name:', locationName);
+        } else {
+          console.log('Using Yandex address:', locationName);
+        }
+        
+        const waypoint = {
           id: index,
           lat: coordinates[0],
           lng: coordinates[1],
           order: index,
           type: index === 0 ? 'start' : 'end',
-          name: address
-        });
+          name: locationName
+        };
         
-        console.log(`Waypoint ${index}:`, address, coordinates);
+        extractedWaypoints.push(waypoint);
+        
+        console.log(`Final waypoint ${index}:`, waypoint);
       });
 
-      // Method 2: Try to get route path coordinates if available
-      try {
-        const routes = multiRouteObj.getRoutes();
-        if (routes && routes.getLength && routes.getLength() > 0) {
-          const route = routes.get(0);
-          console.log('Got route for path extraction:', route);
-          
-          // Try different methods to get route path
-          if (route.geometry && route.geometry.getCoordinates) {
-            const pathCoords = route.geometry.getCoordinates();
-            console.log('Route path coordinates:', pathCoords.length);
-            
-            // Add intermediate waypoints from route path (sample every Nth point)
-            const sampleInterval = Math.max(1, Math.floor(pathCoords.length / 20)); // Sample 20 points max
-            pathCoords.forEach((coord, index) => {
-              if (index > 0 && index < pathCoords.length - 1 && index % sampleInterval === 0) {
-                extractedWaypoints.push({
-                  id: extractedWaypoints.length,
-                  lat: coord[0],
-                  lng: coord[1],
-                  order: extractedWaypoints.length,
-                  type: 'waypoint',
-                  name: `Route point ${Math.floor(index / sampleInterval)}`
-                });
-              }
-            });
-          }
-        }
-      } catch (pathError) {
-        console.log('Could not extract route path, using reference points only:', pathError);
-      }
+      // Method 2: TEMPORARILY DISABLED - Route path extraction might be causing issues
+      console.log('Skipping intermediate waypoint extraction to debug St. Petersburg issue');
+      
+      // try {
+      //   const routes = multiRouteObj.getRoutes();
+      //   if (routes && routes.getLength && routes.getLength() > 0) {
+      //     const route = routes.get(0);
+      //     console.log('Got route for path extraction:', route);
+      //     
+      //     // Try different methods to get route path
+      //     if (route.geometry && route.geometry.getCoordinates) {
+      //       const pathCoords = route.geometry.getCoordinates();
+      //       console.log('Route path coordinates:', pathCoords.length);
+      //       
+      //       // Add intermediate waypoints from route path (sample every Nth point)
+      //       const sampleInterval = Math.max(1, Math.floor(pathCoords.length / 20)); // Sample 20 points max
+      //       console.log(`Sampling ${pathCoords.length} path coordinates with interval ${sampleInterval}`);
+      //       
+      //       pathCoords.forEach((coord, index) => {
+      //         if (index > 0 && index < pathCoords.length - 1 && index % sampleInterval === 0) {
+      //           console.log(`Adding intermediate waypoint ${index}: [${coord[0]}, ${coord[1]}]`);
+      //           extractedWaypoints.push({
+      //             id: extractedWaypoints.length,
+      //             lat: coord[0],
+      //             lng: coord[1],
+      //             order: extractedWaypoints.length,
+      //             type: 'waypoint',
+      //             name: `Route point ${Math.floor(index / sampleInterval)}`
+      //           });
+      //         }
+      //       });
+      //     }
+      //   }
+      // } catch (pathError) {
+      //   console.log('Could not extract route path, using reference points only:', pathError);
+      // }
 
       console.log(`Extracted ${extractedWaypoints.length} total waypoints`);
+      console.log('Extracted waypoints details:', extractedWaypoints);
       setWaypoints(extractedWaypoints);
       
-      // Call onRouteReady with waypoints
-      if (onRouteReady && typeof onRouteReady === 'function') {
-        onRouteReady(multiRouteObj, extractedWaypoints, routeInfo);
-      }
+      // Return waypoints instead of calling callback
+      return extractedWaypoints;
 
     } catch (error) {
       console.error('Error extracting waypoints:', error);
+      return [];
     }
   };
 
-  // Extract route information using the correct Yandex Maps API
-  const extractRouteInfo = (multiRouteObj) => {
+  // Extract route information using the correct Yandex Maps API (returns data, doesn't call callbacks)
+  const extractRouteInfoOnly = (multiRouteObj) => {
     try {
       console.log('Extracting route info from multiRoute:', multiRouteObj);
       
@@ -403,13 +467,12 @@ const YandexMapPath = ({
       console.log('Final route info:', routeInfo);
       setRouteInfo(routeInfo);
       
-      // Call onRouteReady with route info
-      if (onRouteReady && typeof onRouteReady === 'function') {
-        onRouteReady(multiRouteObj, waypoints, routeInfo);
-      }
+      // Return route info instead of calling callback
+      return routeInfo;
 
     } catch (error) {
       console.error('Error extracting route info:', error);
+      return null;
     }
   };
 

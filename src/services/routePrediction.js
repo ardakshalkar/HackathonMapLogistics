@@ -37,6 +37,14 @@ export class RoutePredictionService {
       return [];
     }
 
+    console.log('=== ROUTE PREDICTION DEBUG ===');
+    console.log('Waypoints received:', waypoints.map(w => ({ name: w.name, lat: w.lat, lng: w.lng, type: w.type })));
+    console.log('Route info:', { distance: routeInfo.totalDistance, duration: routeInfo.totalDuration });
+
+    // Validate and filter waypoints to ensure they make geographic sense
+    const validatedWaypoints = this.validateWaypoints(waypoints);
+    console.log('After validation:', validatedWaypoints.map(w => ({ name: w.name, lat: w.lat, lng: w.lng, type: w.type })));
+
     const totalDistance = routeInfo.totalDistance; // in meters
     const totalDuration = routeInfo.totalDuration; // in seconds
     const averageSpeed = this.getAverageSpeed(truckType, routeConditions);
@@ -55,15 +63,16 @@ export class RoutePredictionService {
     let waypointIndex = 0;
 
     // Calculate distance between consecutive waypoints
-    const waypointDistances = this.calculateWaypointDistances(waypoints);
+    const waypointDistances = this.calculateWaypointDistances(validatedWaypoints);
 
     // Add initial position
     predictions.push({
       time: new Date(currentTime),
       distance: 0,
       waypointIndex: 0,
-      lat: waypoints[0].lat,
-      lng: waypoints[0].lng,
+      lat: validatedWaypoints[0].lat,
+      lng: validatedWaypoints[0].lng,
+      name: validatedWaypoints[0].name || 'Start Location',
       type: 'start',
       estimatedArrival: null,
       drivingHours: 0,
@@ -88,7 +97,7 @@ export class RoutePredictionService {
       
       // Find the waypoint closest to this distance
       const { waypointIndex: newIndex, lat, lng, progress } = this.findWaypointAtDistance(
-        waypoints, 
+        validatedWaypoints, 
         waypointDistances, 
         distanceCovered
       );
@@ -97,6 +106,9 @@ export class RoutePredictionService {
 
       // Detect nearby cities
       const nearbyCity = this.findNearbyCity(lat, lng);
+      if (nearbyCity) {
+        console.log(`City detected at position (${lat.toFixed(4)}, ${lng.toFixed(4)}):`, nearbyCity.name, `(${nearbyCity.distance}km away)`);
+      }
 
       // Calculate estimated arrival time
       const remainingDistance = totalDistance - distanceCovered;
@@ -122,15 +134,16 @@ export class RoutePredictionService {
     }
 
     // Add final destination
-    const finalWaypoint = waypoints[waypoints.length - 1];
+    const finalWaypoint = validatedWaypoints[validatedWaypoints.length - 1];
     const finalTime = new Date(currentTime.getTime() + totalHours * 3600000);
     
     predictions.push({
       time: finalTime,
       distance: totalDistance,
-      waypointIndex: waypoints.length - 1,
+      waypointIndex: validatedWaypoints.length - 1,
       lat: finalWaypoint.lat,
       lng: finalWaypoint.lng,
+      name: finalWaypoint.name || 'Destination',
       type: 'destination',
       estimatedArrival: finalTime,
       drivingHours: totalHours - (Math.floor(totalHours / 8) * this.breakDuration),
@@ -141,6 +154,45 @@ export class RoutePredictionService {
     });
 
     return predictions;
+  }
+
+  // Validate waypoints to remove any that are geographically illogical
+  validateWaypoints(waypoints) {
+    if (!waypoints || waypoints.length < 2) return waypoints;
+
+    const start = waypoints[0];
+    const end = waypoints[waypoints.length - 1];
+    
+    console.log(`Validating route from ${start.name} to ${end.name}`);
+    
+    // Filter out intermediate waypoints that are too far from the logical path
+    const validWaypoints = [start]; // Always keep start
+    
+    for (let i = 1; i < waypoints.length - 1; i++) {
+      const waypoint = waypoints[i];
+      
+      // Calculate if this waypoint is on a reasonable path
+      const distanceFromStart = this.calculateDistance(start.lat, start.lng, waypoint.lat, waypoint.lng);
+      const distanceToEnd = this.calculateDistance(waypoint.lat, waypoint.lng, end.lat, end.lng);
+      const directDistance = this.calculateDistance(start.lat, start.lng, end.lat, end.lng);
+      
+      // If waypoint makes the total distance more than 150% of direct distance, skip it
+      const totalViaWaypoint = distanceFromStart + distanceToEnd;
+      const detourRatio = totalViaWaypoint / directDistance;
+      
+      console.log(`Waypoint ${i} (${waypoint.lat.toFixed(4)}, ${waypoint.lng.toFixed(4)}): detour ratio ${detourRatio.toFixed(2)}`);
+      
+      if (detourRatio < 1.5) { // Allow up to 50% detour
+        validWaypoints.push(waypoint);
+      } else {
+        console.log(`Skipping waypoint ${i} - too large detour (${detourRatio.toFixed(2)}x)`);
+      }
+    }
+    
+    validWaypoints.push(end); // Always keep end
+    
+    console.log(`Filtered ${waypoints.length} waypoints down to ${validWaypoints.length}`);
+    return validWaypoints;
   }
 
   // Calculate distances between consecutive waypoints
@@ -160,16 +212,27 @@ export class RoutePredictionService {
 
   // Find waypoint at specific distance along route
   findWaypointAtDistance(waypoints, waypointDistances, targetDistance) {
+    console.log(`=== FINDING WAYPOINT AT DISTANCE ${(targetDistance/1000).toFixed(1)}km ===`);
+    console.log('Available waypoints:', waypoints.map(w => ({ name: w.name, lat: w.lat, lng: w.lng })));
+    console.log('Waypoint distances:', waypointDistances.map(d => `${(d/1000).toFixed(1)}km`));
+    
     let accumulatedDistance = 0;
     
     for (let i = 0; i < waypointDistances.length; i++) {
       const segmentDistance = waypointDistances[i];
+      
+      console.log(`Segment ${i}: ${(accumulatedDistance/1000).toFixed(1)}km to ${((accumulatedDistance + segmentDistance)/1000).toFixed(1)}km`);
       
       if (accumulatedDistance + segmentDistance >= targetDistance) {
         // Interpolate position within this segment
         const progress = (targetDistance - accumulatedDistance) / segmentDistance;
         const lat = waypoints[i].lat + (waypoints[i + 1].lat - waypoints[i].lat) * progress;
         const lng = waypoints[i].lng + (waypoints[i + 1].lng - waypoints[i].lng) * progress;
+        
+        console.log(`Found in segment ${i}: progress ${progress.toFixed(3)}`);
+        console.log(`From waypoint: ${waypoints[i].name} [${waypoints[i].lat}, ${waypoints[i].lng}]`);
+        console.log(`To waypoint: ${waypoints[i + 1].name} [${waypoints[i + 1].lat}, ${waypoints[i + 1].lng}]`);
+        console.log(`Interpolated position: [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
         
         return {
           waypointIndex: i,
