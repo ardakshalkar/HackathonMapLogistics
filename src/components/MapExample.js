@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import YandexMapPath from './YandexMapPath';
+import SearchableLocationInput from './SearchableLocationInput';
 import './MapExample.css';
 
 const MapExample = () => {
@@ -15,37 +16,16 @@ const MapExample = () => {
     name: 'St. Petersburg, Russia'
   });
 
-  const [customStart, setCustomStart] = useState('');
-  const [customEnd, setCustomEnd] = useState('');
-
   const predefinedLocations = [
     { lat: 55.7558, lng: 37.6176, name: 'Moscow, Russia' },
     { lat: 59.9311, lng: 30.3609, name: 'St. Petersburg, Russia' },
+    { lat: 43.2380, lng: 76.9452, name: 'Almaty, Kazakhstan' },
+    { lat: 51.1694, lng: 71.4491, name: 'Nur-Sultan, Kazakhstan' },
     { lat: 40.7128, lng: -74.0060, name: 'New York, USA' },
     { lat: 51.5074, lng: -0.1278, name: 'London, UK' },
     { lat: 48.8566, lng: 2.3522, name: 'Paris, France' },
     { lat: 35.6762, lng: 139.6503, name: 'Tokyo, Japan' }
   ];
-
-  const handleLocationChange = (type, location) => {
-    if (type === 'start') {
-      setStartLocation(location);
-    } else {
-      setEndLocation(location);
-    }
-  };
-
-  const handleCustomLocation = (type, coords) => {
-    const [lat, lng] = coords.split(',').map(coord => parseFloat(coord.trim()));
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const location = { lat, lng, name: `Custom ${type}` };
-      if (type === 'start') {
-        setStartLocation(location);
-      } else {
-        setEndLocation(location);
-      }
-    }
-  };
 
   const handleMapReady = (map) => {
     console.log('Map is ready:', map);
@@ -65,68 +45,50 @@ const MapExample = () => {
       <div className="map-example-controls">
         <div className="location-controls">
           <div className="location-group">
-            <h3>Start Location</h3>
-            <div className="location-selector">
-              <select 
-                value={startLocation.name} 
-                onChange={(e) => {
-                  const location = predefinedLocations.find(loc => loc.name === e.target.value);
-                  if (location) handleLocationChange('start', location);
-                }}
-              >
-                {predefinedLocations.map((location, index) => (
-                  <option key={index} value={location.name}>
-                    {location.name}
-                  </option>
+            <SearchableLocationInput
+              label="Start Location"
+              value={startLocation}
+              onChange={(location) => setStartLocation(location)}
+              placeholder="Search for start city..."
+            />
+            
+            <div className="quick-select">
+              <label>Quick select:</label>
+              <div className="quick-buttons">
+                {predefinedLocations.slice(0, 4).map((location, index) => (
+                  <button
+                    key={index}
+                    className="quick-button"
+                    onClick={() => setStartLocation(location)}
+                  >
+                    {location.name.split(',')[0]}
+                  </button>
                 ))}
-              </select>
-            </div>
-            <div className="custom-coords">
-              <input
-                type="text"
-                placeholder="Custom coordinates (lat, lng)"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-              />
-              <button 
-                onClick={() => handleCustomLocation('start', customStart)}
-                disabled={!customStart}
-              >
-                Set Start
-              </button>
+              </div>
             </div>
           </div>
 
           <div className="location-group">
-            <h3>End Location</h3>
-            <div className="location-selector">
-              <select 
-                value={endLocation.name} 
-                onChange={(e) => {
-                  const location = predefinedLocations.find(loc => loc.name === e.target.value);
-                  if (location) handleLocationChange('end', location);
-                }}
-              >
-                {predefinedLocations.map((location, index) => (
-                  <option key={index} value={location.name}>
-                    {location.name}
-                  </option>
+            <SearchableLocationInput
+              label="End Location"
+              value={endLocation}
+              onChange={(location) => setEndLocation(location)}
+              placeholder="Search for destination city..."
+            />
+            
+            <div className="quick-select">
+              <label>Quick select:</label>
+              <div className="quick-buttons">
+                {predefinedLocations.slice(4, 8).map((location, index) => (
+                  <button
+                    key={index}
+                    className="quick-button"
+                    onClick={() => setEndLocation(location)}
+                  >
+                    {location.name.split(',')[0]}
+                  </button>
                 ))}
-              </select>
-            </div>
-            <div className="custom-coords">
-              <input
-                type="text"
-                placeholder="Custom coordinates (lat, lng)"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-              />
-              <button 
-                onClick={() => handleCustomLocation('end', customEnd)}
-                disabled={!customEnd}
-              >
-                Set End
-              </button>
+              </div>
             </div>
           </div>
         </div>
